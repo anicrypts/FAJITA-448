@@ -1,0 +1,5 @@
+export RTE_SDK=/home/anikajh//dpdk-stable-21.11.9//
+export RTE_TARGET=x86_64-linux-gnu
+export RTE_SDK_BIN=/home/anikajh//dpdk-stable-21.11.9/build
+export LD_LIBRARY_PATH=/home/anikajh//dpdk-stable-21.11.9/build/lib/x86_64-linux-gnu
+

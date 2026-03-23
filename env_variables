@@ -1,5 +1,7 @@
-export RTE_SDK=/home/anikajh//dpdk-stable-21.11.9//
-export RTE_TARGET=x86_64-linux-gnu
-export RTE_SDK_BIN=/home/anikajh//dpdk-stable-21.11.9/build
-export LD_LIBRARY_PATH=/home/anikajh//dpdk-stable-21.11.9/build/lib/x86_64-linux-gnu
-
+export RTE_SDK=/home/ubuntu/dpdk-stable-21.11.9/
+export RTE_TARGET=aarch64-linux-gnu
+export RTE_SDK_BIN=/home/ubuntu//dpdk-stable-21.11.9/build
+export LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/home/ubuntu//dpdk-stable-21.11.9/build/lib/aarch64-linux-gnu
+export CPLUS_INCLUDE_PATH=/usr/include
+export C_INCLUDE_PATH=/usr/include
+export PKG_CONFIG_PATH=/home/ubuntu/dpdk-stable-21.11.9/build/lib/aarch64-linux-gnu/pkgconfig

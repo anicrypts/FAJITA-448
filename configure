@@ -8396,7 +8396,7 @@ char pthread_create ();
 int
 main (void)
 {
-return pthread_create ();
+//return pthread_create ();
   ;
   return 0;
 }

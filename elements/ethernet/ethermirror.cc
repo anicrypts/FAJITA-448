@@ -35,6 +35,7 @@ EtherMirror::~EtherMirror()
 Packet *
 EtherMirror::simple_action(Packet *p)
 {
+    printf("Ethermirror: Executing simple_action\n");
     if (WritablePacket *q = p->uniqueify()) {
         click_ether *ethh = reinterpret_cast<click_ether *>(q->data());
         uint8_t tmpa[6];

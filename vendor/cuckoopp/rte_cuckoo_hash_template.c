@@ -6,7 +6,7 @@
  * LICENSE.md file in the root directory of this source tree.
  */
 
-
+#ifdef BUILD_CUCKOO_VARIANT
 
 #include <string.h>
 #include <stdint.h>
@@ -2004,3 +2004,5 @@ uint32_t H(rte_hash,capacity)(struct rte_hash_hvariant *h){
 int H(rte_hash,slots_per_bucket)(void){
 	return RTE_HASH_HVARIANT_BUCKET_ENTRIES;
 }
+
+#endif

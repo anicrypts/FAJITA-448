@@ -6,6 +6,7 @@
  * LICENSE.md file in the root directory of this source tree.
  */
 
+#ifdef BUILD_CUCKOO_VARIANT
 
 #include <rte_hash_commons.h>
 
@@ -565,4 +566,5 @@ int H(rte_hash,slots_per_bucket)(void);
 
 #ifdef __cplusplus
 }
+#endif
 #endif

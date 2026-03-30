@@ -582,7 +582,8 @@ namespace bits {
 #ifdef HAVE_AVX2
 inline size_t avx2_strstr_anysize(const char* s, size_t n, const char* needle, size_t k) {
 
-    const __m256i first = _mm256_set1_epi8(needle[0]);
+    printf("PANIC!!!!!! COMMENTED OUT IMPLEMENTATION FOR DEBUGGING HAVE_AVX2\n");	
+    /*const __m256i first = _mm256_set1_epi8(needle[0]);
     const __m256i last  = _mm256_set1_epi8(needle[k - 1]);
 
     for (size_t i = 0; i < n; i += 32) {
@@ -606,12 +607,14 @@ inline size_t avx2_strstr_anysize(const char* s, size_t n, const char* needle, s
             mask = bits::clear_leftmost_set(mask);
         }
     }
-
+*/
     return std::string::npos;
 }
 #elif HAVE_SSE42
 inline size_t sse42_strstr_anysize(const char* s, size_t n, const char* needle, size_t k) {
-    const __m128i N = _mm_loadu_si128((__m128i*)needle);
+
+    printf("PANIC!!!!!! COMMENTED OUT IMPLEMENTATION FOR DEBUGGING have_sse42\n");	
+    	/*const __m128i N = _mm_loadu_si128((__m128i*)needle);
 
     for (size_t i = 0; i < n; i += 16) {
 
@@ -635,13 +638,14 @@ inline size_t sse42_strstr_anysize(const char* s, size_t n, const char* needle, 
             mask = bits::clear_leftmost_set(mask);
         }
     }
-
+    */
     return std::string::npos;
 }
 #else
 inline size_t sse2_strstr_anysize(const char* s, size_t n, const char* needle, size_t k) {
 
-    assert(k > 0);
+    printf("COMMENTED OUT IMPLEMENTATION FOR DEBUGGING DEFAULT\n");	
+    /*assert(k > 0);
     assert(n > 0);
 
     const __m128i first = _mm_set1_epi8(needle[0]);
@@ -668,7 +672,7 @@ inline size_t sse2_strstr_anysize(const char* s, size_t n, const char* needle, s
             mask = bits::clear_leftmost_set(mask);
         }
     }
-
+    */
     return std::string::npos;
 }
 #endif

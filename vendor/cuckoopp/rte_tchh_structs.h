@@ -6,6 +6,9 @@
  * LICENSE.md file in the root directory of this source tree.
  */
 
+#ifdef BUILD_CUCKOO_VARIANT
+
+
 #ifndef RTE_TCHH_STRUCTS_H
 #define RTE_TCHH_STRUCTS_H
 
@@ -37,4 +40,5 @@ struct rte_tch_data {
 typedef struct rte_tch_data hash_data_t;
 typedef uint64_t hash_sig64_t;
 
+#endif
 #endif

@@ -26,10 +26,12 @@ int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
             .read("OPS", _ops)
             .complete() < 0)
         return -1;
+    printf("SyntheticNF: configured ops to %d\n", _ops);
     return 0;
 }
 
 void SyntheticNF::push(int port, Packet *p) {
+    printf("SyntheticNF: executing push\n");
     // Ensure packet is writable
     WritablePacket *q = p->uniqueify();
     if (!q) {

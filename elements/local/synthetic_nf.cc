@@ -1,13 +1,13 @@
-// - swaps Ethernet source/destination MACs
-// - performs OPS dummy operations per packet (tunable)
-// - forwards packet out the same interface
+/* 
+ * syntheticnf.{cc,hh}
+ */
 
 #include <click/config.h>
 #include <click/element.hh>
 #include <click/packet.hh>
 #include <click/args.hh>
 #include <click/etheraddress.hh>
-#include <click/ether.hh>
+#include <clicknet/ether.h>
 #include <click/error.hh>
 #include "synthetic_nf.hh"
 
@@ -30,24 +30,24 @@ int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
     return 0;
 }
 
-void SyntheticNF::push(int port, Packet *p) {
-    printf("SyntheticNF: executing push\n");
+Packet * SyntheticNF::simple_action(Packet *p) {
+    //printf("SyntheticNF: executing simple_action\n");
     // Ensure packet is writable
     WritablePacket *q = p->uniqueify();
     if (!q) {
         // drop if cannot make writable
         p->kill();
-        return;
+        return 0;
     }
 
     // Basic sanity check: must be at least Ethernet header size
     if (q->length() < (int)sizeof(click_ether)) {
-        output(0).push(q);
-        return;
+       // output(0).push(q);
+        return 0;
     }
 
     // Swap MAC addresses in-place
-    click_ether *eth = reinterpret_cast<click_ether *>(q->data());
+    click_ether *ethh = reinterpret_cast<click_ether *>(q->data());
     uint8_t tmp_mac[6];
     memcpy(tmp_mac, ethh->ether_dhost, 6);
     memcpy(ethh->ether_dhost, ethh->ether_shost, 6);
@@ -63,10 +63,26 @@ void SyntheticNF::push(int port, Packet *p) {
         local_acc ^= 0x9e3779b97f4a7c15ULL;
     }
     _accumulator = local_acc;
-
-    // Forward packet out the same interface (output port 0)
-    output(0).push(q);
+    
+    return q;
 }
+
+
+#if HAVE_BATCH
+PacketBatch *
+SyntheticNF::simple_action_batch(PacketBatch *batch)
+{
+#ifdef CLICK_NOINDIRECT
+    FOR_EACH_PACKET(batch, p)   {
+        SyntheticNF::simple_action(p);
+    }
+#else
+    EXECUTE_FOR_EACH_PACKET_DROPPABLE(SyntheticNF::simple_action, batch, [](Packet*){});
+#endif
+    return batch;
+}
+#endif
+
 
 CLICK_ENDDECLS
 EXPORT_ELEMENT(SyntheticNF)

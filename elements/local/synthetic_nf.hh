@@ -1,9 +1,13 @@
 #ifndef CLICK_SYNTHETICNF_HH
 #define CLICK_SYNTHETICNF_HH
+#include <clicknet/ether.h>
+#include <click/config.h>
+#include <click/element.hh>
 #include <click/batchelement.hh>
+
 CLICK_DECLS
 
-class SyntheticNF : public Element {
+class SyntheticNF : public BatchElement {
     public:
 
         SyntheticNF() CLICK_COLD;
@@ -13,13 +17,16 @@ class SyntheticNF : public Element {
         const char *port_count() const override { return PORTS_1_1; }
 
         int configure(Vector<String> &, ErrorHandler *);
-        void push(int, Packet *);
+        Packet * simple_action(Packet *);
 
+    #if HAVE_BATCH
+        PacketBatch *simple_action_batch(PacketBatch *);
+    #endif
+    
     private:
         unsigned int _ops;
         uint64_t _accumulator;
-
-}
+};
 
 CLICK_ENDDECLS
 #endif

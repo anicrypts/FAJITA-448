@@ -1746,7 +1746,7 @@ bool Element::get_spawning_threads(Bitvector& bmp, bool isoutput, int port) {
 }
 
 Bitvector Element::get_passing_threads(bool forward, int port, Element* origin, bool& is_fullpush, int level, bool touching) {
-    Bitvector b(master()->nthreads());
+    Bitvector b(master()->nthreads() * 2);
     InputThreadVisitor visitor(b, origin);
     router()->visit(this,forward,port,&visitor);
 

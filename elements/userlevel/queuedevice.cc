@@ -298,7 +298,7 @@ int RXQueueDevice::initialize_rx(ErrorHandler *errh) {
         }
     }
 
-    for (int i = click_max_cpu_ids(); i < usable_threads.size(); i++)
+    for (int i = click_max_cpu_ids() * 2; i < usable_threads.size(); i++)
        usable_threads[i] = 0;
 
     if (router()->thread_sched()) {
@@ -450,10 +450,14 @@ int QueueDevice::initialize_tasks(bool schedule, ErrorHandler *errh, TaskCallbac
     //If there is multiple threads per queue, share_idx will be in [0,thread_share[, thread_share being the amount of queues that needs to be shared between threads
     int th_share_idx = 0;
     int qu_share_idx = 0;
-    for (int th_id = 0; th_id < master()->nthreads(); th_id++) {
-        if (!usable_threads[th_id])
-            continue;
-
+    int th_id = 0;
+    int usable_thread_index = 0;
+    while (th_id < master()->nthreads()) {
+        if (!usable_threads[usable_thread_index]) {
+	    printf("Thread is not usable %d. Continuing\n", th_id); 
+    	    usable_thread_index++;
+	    continue;
+	}
         if (th_share_idx % thread_share != 0) {
             --th_num;
             _q_infos[qu_num - firstqueue].lock = 0;
@@ -484,6 +488,9 @@ int QueueDevice::initialize_tasks(bool schedule, ErrorHandler *errh, TaskCallbac
 
         if (qu_num == firstqueue + n_queues) break;
         ++th_num;
+        
+	th_id++;
+	usable_thread_index++;
     }
 
     return 0;

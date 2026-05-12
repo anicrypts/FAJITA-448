@@ -25,7 +25,9 @@ class SyntheticNF : public BatchElement {
     
     private:
         unsigned int _ops;
+	unsigned int _nread_ratio; // An int in the range [0,100]
         uint64_t _accumulator;
+        uint8_t _sink;
 };
 
 CLICK_ENDDECLS

@@ -25,9 +25,9 @@ SyntheticNF::~SyntheticNF()
 
 int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
     if (Args(conf, this, errh)
-            .read("OPS", _ops)
+        .read("OPS", _ops)
 	    .read("NREAD", _nread_ratio)
-            .complete() < 0)
+        .complete() < 0)
         return -1;
     printf("SyntheticNF: configured ops %d, nread_ratio %d\n", _ops, _nread_ratio);
     return 0;

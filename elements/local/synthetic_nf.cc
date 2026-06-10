@@ -1,5 +1,5 @@
 /* 
- * syntheticnf.{cc,hh}
+ * syntheticnf.{cc,hh} -- synthetic network function for benchmarking
  */
 
 #include <click/config.h>
@@ -28,7 +28,7 @@ SyntheticNF::~SyntheticNF()
 int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
     if (Args(conf, this, errh)
         .read("OPS", _ops)
-	.read("NREAD", _nread_ratio)
+	    .read("NREAD", _nread_ratio)
         .read_or_set("TABLE_SIZE", _capacity, 0)
         .complete() < 0)
         return -1;
@@ -68,33 +68,74 @@ int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
     return 0;
 }
 
-
-void SyntheticNF::_update_flow_table(Packet *p)
+bool SyntheticNF::new_flow(SyntheticNFFlowState *state, Packet *p)
 {
-    auto *table = reinterpret_cast<rte_hash *>(_table);
+    // Initialise to sentinel so release_flow() is safe even if we return false
+    state->hash_idx = -1;
 
-    // Read the 32-bits of UDP src port, dst port
+    if (!_table)
+        return true; // table disabled, nothing to insert
+
+    auto *table = reinterpret_cast<rte_hash *>(_table);
     local_flowID *ifid = (local_flowID *)(p->data() + FLOW_ID_OFFSET);
 
-    int idx = rte_hash_lookup(table, ifid);
-    if (idx < 0) {
-        // New flow
-        idx = rte_hash_add_key(table, ifid);
-        if (unlikely(idx < 0)) {
-            click_chatter("SyntheticNF: problem inserting data! %d", idx);
-            return;
-        }
-	printf("New flow %d\n", idx);
+    int idx = rte_hash_add_key(table, ifid);
+    if (unlikely(idx < 0)) {
+        click_chatter("SyntheticNF: problem inserting key! %d", idx);
+        return false;
     }
 
-    _states[idx].count++;
+    state->hash_idx = idx;
+    return true;
 }
 
-Packet * SyntheticNF::simple_action(Packet *p) {
+/* -----------------------------------------------------------------------
+ * FlowStateElement: release_flow
+ * Called by the framework after TIMEOUT ms of inactivity.
+ * Deletes the flow's key from the rte_hash using the position stored in the
+ * FCB state — no second lookup needed.
+ * --------------------------------------------------------------------- */
 
-#ifdef DEBUG    
-	printf("SyntheticNF: executing simple_action\n");
+void SyntheticNF::release_flow(SyntheticNFFlowState *state)
+{
+    if (!_table || state->hash_idx < 0)
+        return;
+
+    auto *table = reinterpret_cast<rte_hash *>(_table);
+
+    // Retrieve the key by position so we can call rte_hash_del_key
+    const void *key = nullptr;
+    if (rte_hash_get_key_with_position(table, state->hash_idx, &key) == 0) {
+        rte_hash_del_key(table, key);
+    }
+
+    // Reset the counter slot so it is clean if the position is reused
+    _states[state->hash_idx].count = 0;
+    state->hash_idx = -1;
+}
+
+/* -----------------------------------------------------------------------
+ * FlowStateElement: push_flow
+ * Called for every packet batch belonging to an active flow.
+ * Performs the synthetic load and increments the per-flow counter.
+ * --------------------------------------------------------------------- */
+
+void SyntheticNF::push_flow(int, SyntheticNFFlowState *state, PacketBatch *batch)
+{
+    FOR_EACH_PACKET_SAFE(batch, p) {
+        _process_packet(p, state);
+    }
+    output_push_batch(0, batch);
+}
+
+
+// Per-packet work, called form push_flow for every packet
+void SyntheticNF::_process_packet(Packet *p, SyntheticNFFlowState *state)
+{
+#ifdef DEBUG
+    printf("SyntheticNF: executing _process_packet\n");
 #endif
+
     // Ensure packet is writable
     WritablePacket *q = p->uniqueify();
     if (!q) {
@@ -132,9 +173,9 @@ Packet * SyntheticNF::simple_action(Packet *p) {
     }
     _accumulator = local_acc;
 
-    // Hash (flow) table update
-    if (_table)
-        _update_flow_table(q);
+    // Increment per-flow counter in the flat state array
+    if (_table && state->hash_pos >= 0)
+        _states[state->hash_pos].count++;
 
     // Swap MAC addresses in-place
     click_ether *ethh = reinterpret_cast<click_ether *>(q->data());
@@ -142,26 +183,7 @@ Packet * SyntheticNF::simple_action(Packet *p) {
     memcpy(tmp_mac, ethh->ether_dhost, 6);
     memcpy(ethh->ether_dhost, ethh->ether_shost, 6);
     memcpy(ethh->ether_shost, tmp_mac, 6);
-
-    return q;
 }
-
-
-#if HAVE_BATCH
-PacketBatch *
-SyntheticNF::simple_action_batch(PacketBatch *batch)
-{
-#ifdef CLICK_NOINDIRECT
-    FOR_EACH_PACKET(batch, p)   {
-        SyntheticNF::simple_action(p);
-    }
-#else
-    EXECUTE_FOR_EACH_PACKET_DROPPABLE(SyntheticNF::simple_action, batch, [](Packet*){});
-#endif
-    return batch;
-}
-#endif
-
 
 CLICK_ENDDECLS
 EXPORT_ELEMENT(SyntheticNF)

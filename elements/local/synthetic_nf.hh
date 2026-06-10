@@ -13,7 +13,7 @@ CLICK_DECLS
 // Stores the hash table position so release_flow() can delete the entry
 // without doing a second lookup.
 struct SyntheticNFFlowState {
-    int hash_pos;  // position returned by rte_hash_add_key; -1 if not inserted
+    int hash_idx;  // position returned by rte_hash_add_key; -1 if not inserted
 };
 
 // Per-position counter stored in the flat state array.

@@ -11,7 +11,7 @@
 #include <click/error.hh>
 #include "synthetic_nf.hh"
 
-//#define DEBUG
+#define DEBUG
 
 CLICK_DECLS
 
@@ -85,6 +85,10 @@ bool SyntheticNF::new_flow(SyntheticNFFlowState *state, Packet *p)
         return false;
     }
 
+#ifdef DEBUG
+    printf("New flow with idx %u\n", idx);
+#endif
+
     state->hash_idx = idx;
     return true;
 }
@@ -104,10 +108,14 @@ void SyntheticNF::release_flow(SyntheticNFFlowState *state)
     auto *table = reinterpret_cast<rte_hash *>(_table);
 
     // Retrieve the key by position so we can call rte_hash_del_key
-    const void *key = nullptr;
+    void *key = nullptr;
     if (rte_hash_get_key_with_position(table, state->hash_idx, &key) == 0) {
         rte_hash_del_key(table, key);
     }
+
+#ifdef DEBUG
+    printf("Releasing flow idx %u\n", state->hash_idx);
+#endif
 
     // Reset the counter slot so it is clean if the position is reused
     _states[state->hash_idx].count = 0;
@@ -141,12 +149,12 @@ void SyntheticNF::_process_packet(Packet *p, SyntheticNFFlowState *state)
     if (!q) {
         // drop if cannot make writable
         p->kill();
-        return 0;
+        return;
     }
 
     // Basic sanity check: must be at least Ethernet header size
     if (q->length() < (int)sizeof(click_ether)) {
-        return 0;
+        return;
     }
 
     // Read a fraction of the bytes of the received packet
@@ -174,8 +182,8 @@ void SyntheticNF::_process_packet(Packet *p, SyntheticNFFlowState *state)
     _accumulator = local_acc;
 
     // Increment per-flow counter in the flat state array
-    if (_table && state->hash_pos >= 0)
-        _states[state->hash_pos].count++;
+    if (_table && state->hash_idx >= 0)
+        _states[state->hash_idx].count++;
 
     // Swap MAC addresses in-place
     click_ether *ethh = reinterpret_cast<click_ether *>(q->data());

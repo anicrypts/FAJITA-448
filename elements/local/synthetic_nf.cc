@@ -56,12 +56,12 @@ Packet * SyntheticNF::simple_action(Packet *p) {
     unsigned int nread = p->length() * ratio;
 
 #ifdef DEBUG
-    printf("reading %d bytes of a %d-byte packet\n", nread, p->length());
+    printf("reading %d bytes of a %d-byte packet\n", nread, q->length());
 #endif
 
     // Accumulate into a volatile sink so the compiler cannot prove the result is unused
     volatile uint8_t sink = 0;
-    const volatile uint8_t *data = reinterpret_cast<const volatile uint8_t *>(p->data());
+    const volatile uint8_t *data = reinterpret_cast<const volatile uint8_t *>(q->data());
     unsigned int i = 0;
     for (; i < nread; ++i) {
         sink ^= data[i];

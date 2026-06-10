@@ -38,3 +38,4 @@ compile_commands.json
 *.lto.o
 build/*
 userlevel/packetmill
+.DS_Store

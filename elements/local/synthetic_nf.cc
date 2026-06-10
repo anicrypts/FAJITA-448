@@ -74,8 +74,6 @@ Packet * SyntheticNF::simple_action(Packet *p) {
     for (i = 0; i < _ops; ++i) {
         // simple arithmetic and bit-mix using packet pointer to vary work
         local_acc += (uint64_t)i ^ (uint64_t)(uintptr_t)q;
-        local_acc = (local_acc << 1) | (local_acc >> 63);
-        local_acc ^= 0x9e3779b97f4a7c15ULL;
     }
     _accumulator = local_acc;
 

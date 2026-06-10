@@ -53,7 +53,7 @@ Packet * SyntheticNF::simple_action(Packet *p) {
 
     // Read bytes of received packet
     float ratio = _nread_ratio / 100.0;
-    unsigned int nread = p->length() * ratio;
+    unsigned int nread = q->length() * ratio;
 
 #ifdef DEBUG
     printf("reading %d bytes of a %d-byte packet\n", nread, q->length());

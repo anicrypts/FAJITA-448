@@ -7,6 +7,10 @@
 
 CLICK_DECLS
 
+struct SyntheticNFState {
+    atomic_uint32_t count;
+};
+
 class SyntheticNF : public BatchElement {
     public:
 
@@ -24,10 +28,31 @@ class SyntheticNF : public BatchElement {
     #endif
     
     private:
-        unsigned int _ops;
-	    unsigned int _nread_ratio; // An int in the range [0,100]
+
+        struct local_flowID {
+            uint32_t ip_src;
+        };
+
+        // Configurable parameters
+        uint64_t _ops;
+	    uint64_t _nread_ratio; // An int in the range [0,100]
+        uint32_t _capacity;
+
+        // State-saving members for synthetic processing loads
         uint64_t _accumulator;
-        uint8_t _sink;
+        volatile uint8_t _sink;
+
+        // Hash table
+        void *_table;
+        SyntheticNFState *_states;
+        atomic_uint32_t _insertions;
+
+        // Offset into a raw Ethernet/IPv4 frame for UDP src,dst portno
+        // (14B Ethernet header + 20B IPv4 header)
+        static const uint32_t FLOW_ID_OFFSET = 34;
+
+        void _update_flow_table(Packet *p);
+
 };
 
 CLICK_ENDDECLS

@@ -4,6 +4,7 @@
 #include <click/config.h>
 #include <click/element.hh>
 #include <click/batchelement.hh>
+#include <rte_hash.h>
 
 CLICK_DECLS
 
@@ -35,7 +36,7 @@ class SyntheticNF : public BatchElement {
 
         // Configurable parameters
         uint64_t _ops;
-	    uint64_t _nread_ratio; // An int in the range [0,100]
+	int _nread_ratio; // An int in the range [0,100]
         uint32_t _capacity;
 
         // State-saving members for synthetic processing loads

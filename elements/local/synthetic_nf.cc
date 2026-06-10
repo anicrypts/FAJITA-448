@@ -17,7 +17,7 @@ CLICK_DECLS
 
 SyntheticNF::SyntheticNF()
     : _ops(0), _nread_ratio(0), _capacity(0), _accumulator(0), _sink(0),
-    _table(nullptr), _local_fcbs_struct(nullptr)
+    _table(nullptr), _states(nullptr)
 {
 }
 
@@ -28,12 +28,12 @@ SyntheticNF::~SyntheticNF()
 int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
     if (Args(conf, this, errh)
         .read("OPS", _ops)
-	    .read("NREAD", _nread_ratio)
+	.read("NREAD", _nread_ratio)
         .read_or_set("TABLE_SIZE", _capacity, 0)
         .complete() < 0)
         return -1;
 
-    printf("SyntheticNF: configured ops=%d nread_ratio=%d table_size=%u\n",
+    printf("SyntheticNF: configured ops=%lu nread_ratio=%u table_size=%u\n",
            _ops, _nread_ratio, _capacity);
 
     if (_capacity == 0)
@@ -59,10 +59,10 @@ int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
 
     // Allocate flat state array
     size_t stateAlignedSize = (sizeof(SyntheticNFState) + 63) & ~63;
-    _local_fcbs_struct = (SourceCounterState*) CLICK_ALIGNED_ALLOC(stateAlignedSize * _capacity);
-    CLICK_ASSERT_ALIGNED(_local_fcbs_struct);
-    bzero(_local_fcbs_struct, stateAlignedSize * _capacity);
-    if (!_local_fcbs_struct)
+    _states = (SyntheticNFState*) CLICK_ALIGNED_ALLOC(stateAlignedSize * _capacity);
+    CLICK_ASSERT_ALIGNED(_states);
+    bzero(_states, stateAlignedSize * _capacity);
+    if (!_states)
         return errh->error("SyntheticNF: could not init state array for "
                            "table %s!", name().c_str());
     return 0;
@@ -84,9 +84,10 @@ void SyntheticNF::_update_flow_table(Packet *p)
             click_chatter("SyntheticNF: problem inserting data! %d", idx);
             return;
         }
+	printf("New flow %d\n", idx);
     }
 
-    _states[pos].count++;
+    _states[idx].count++;
 }
 
 Packet * SyntheticNF::simple_action(Packet *p) {

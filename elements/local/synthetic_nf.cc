@@ -11,7 +11,7 @@
 #include <click/error.hh>
 #include "synthetic_nf.hh"
 
-//#define DEBUG
+#define DEBUG
 
 CLICK_DECLS
 
@@ -104,7 +104,7 @@ Packet * SyntheticNF::simple_action(Packet *p) {
     }
 
     // Basic sanity check: must be at least Ethernet header size
-    if (q->length() < (int)sizeof(click_ether)) {
+    if (q->length() < (int)sizeof(click_ether) || q->length() < 64) {
         return 0;
     }
 

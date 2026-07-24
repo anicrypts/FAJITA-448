@@ -6,32 +6,25 @@
 #include <click/flow/flowelement.hh>
 #include <click/atomic.hh>
 #include <rte_hash.h>
+#include <rte_jhash.h>
 
 CLICK_DECLS
 
-
-/*
-=c
-
-FlowCounter([CLOSECONNECTION])
-
-=s flow
-
-Counts all flows passing by, the number of active flows, and the number of 
-packets per flow.
-
+/**
+ * HashElem - based on SourceCounter
+ * - Uses 4-byte UDP src,dst tuple instead of IPv4 src as hash key
+ * - Performs hash table lookup and write on push, not new_flow() (i.e., follows the
+ *   no-cache behaviour of SourceCounter)
  */
+
 // alignas(CLICK_CACHE_LINE_SIZE)
 struct HashElemState {
     atomic_uint32_t count;
-//    void* pointer[8]; // extra useless cache line just to add enough space
 };
 
 class HashElem : public FlowStateElement<HashElem,int>
 {
 public:
-    /** @brief Construct an FlowCounter element
-     */
     HashElem() CLICK_COLD;
 
     const char *class_name() const override        { return "HashElem"; }
@@ -40,10 +33,14 @@ public:
 
     int configure(Vector<String> &, ErrorHandler *) override CLICK_COLD;
 
+    // 14B Ethernet header + 20B IPv4 header
+    const static uint32_t _offset = 34;
+
+    /* FlowStateElement interface: timeout, release_flow(), push_flow(), new_flow() */
     void release_flow(int* fcb) {
     }
 
-    const static int timeout = 15000;
+    const static int timeout = 10000;
 
     void push_flow(int port, int* fcb, PacketBatch*);
 
@@ -52,21 +49,9 @@ public:
 #endif
 
     inline bool new_flow(int* state, Packet* p) {
-	printf("HashElem: new_flow\n");
-        if (!_cache)
-            return true;
-
-        auto *table = reinterpret_cast<rte_hash *> (_table);
-        local_flowID* ifid = (local_flowID*) (p->data() + _offset);
-        if (_verbose)
-            _insertions++;
-        int fcb_idx = rte_hash_add_key(table, ifid);
-        if (unlikely(fcb_idx < 0)){
-            click_chatter("Problem with inserting data! %d", fcb_idx);
-            return false;
-        }
-           
-        *state = fcb_idx;
+#ifdef DEBUG
+        printf("HashElem: new_flow\n");
+#endif
         return true;
     }
 
@@ -74,18 +59,14 @@ public:
 protected:
 
     struct local_flowID {
-        uint32_t ip_src;
+        uint32_t udp_ports;
     };
 
     static String read_handler(Element *, void *) CLICK_COLD;
     static int write_handler(const String &, Element *, void *, ErrorHandler *) CLICK_COLD;
 
     uint32_t _capacity;
-    uint8_t _is_src;
-    uint8_t _cache;
-    uint32_t _offset;
     HashElemState *_local_fcbs_struct;
-    atomic_uint32_t *_local_fcbs;
     atomic_uint32_t _insertions;
     uint32_t _verbose;
 

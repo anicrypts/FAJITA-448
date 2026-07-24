@@ -20,16 +20,11 @@ int HashElem::configure(Vector<String> &conf, ErrorHandler *errh)
 {
     if(Args(conf, this, errh)
     .read_or_set("CAPACITY", _capacity, 65536)
-    .read_or_set("ISSRC", _is_src, 1)
-    .read_or_set("CACHE", _cache, 1)
     .read_or_set("VERBOSE", _verbose, 0)
     .complete() < 0)
         return -1;
     
     _insertions = 0;
-    if (_is_src)
-        _offset = 26;
-    else _offset = 30;
     
     struct rte_hash_parameters hash_params = {0};
     char buf[64];
@@ -39,7 +34,7 @@ int HashElem::configure(Vector<String> &conf, ErrorHandler *errh)
     hash_params.entries = _capacity;
 
     hash_params.key_len = sizeof(local_flowID);
-    hash_params.hash_func = ipv4_hash_crc_src_ip;
+    hash_params.hash_func = rte_jhash;
     hash_params.hash_func_init_val = 0;
     hash_params.extra_flag = RTE_HASH_EXTRA_FLAGS_RW_CONCURRENCY | RTE_HASH_EXTRA_FLAGS_MULTI_WRITER_ADD;
 
@@ -57,14 +52,7 @@ int HashElem::configure(Vector<String> &conf, ErrorHandler *errh)
     if (!_local_fcbs_struct) {
             return errh->error("Could not init data for table %s!", name().c_str());
     }
-/*
-    _local_fcbs = (atomic_uint32_t*) CLICK_ALIGNED_ALLOC(sizeof(atomic_uint32_t) * _capacity);
-    CLICK_ASSERT_ALIGNED(_local_fcbs);
-    bzero(_local_fcbs, sizeof(atomic_uint32_t) * _capacity);
-    if (!_local_fcbs) {
-            return errh->error("Could not init data for table %s!", name().c_str());
-    }
-*/
+
     return 0;
 }
 
@@ -76,45 +64,32 @@ void HashElem::push_flow(int, int* fcb, PacketBatch* flow)
 #if FLOW_PUSH_BATCH
 inline void HashElem::push_flow_batch(int port, int** fcb, PacketBatch *head) 
 {
-    if (!_cache){
-        int *positions = new int[head->count()];
-        int index = 0;
-        void **key_array = new void*[64];
-        FOR_EACH_PACKET(head, p){
-            key_array[index] = (local_flowID*) (p->data() + _offset);
-            index++;
-        }
-
-        auto *table = reinterpret_cast<rte_hash *> (_table);
-        rte_hash_lookup_bulk(table, const_cast<const void **>(&(key_array[0])), head->count(), positions);
-
-        int i = 0;
-        FOR_EACH_PACKET_SAFE(head, pkt) {
-            int local_idx = positions[i];
-            if (local_idx < 0){
-                local_idx = rte_hash_add_key(table, key_array[i]);
-                if (_verbose)
-                    _insertions++;
-                if (local_idx < 0){
-                    click_chatter("Problem with inserting data! %d", local_idx);
-                    return;
-                }
-            }
-
-            _local_fcbs_struct[local_idx].count++;
-//            _local_fcbs[local_idx]++;
-            i++;
-        }
+    int *positions = new int[head->count()];
+    int index = 0;
+    void **key_array = new void*[64];
+    FOR_EACH_PACKET(head, p){
+        key_array[index] = (local_flowID*) (p->data() + _offset);
+        index++;
     }
-    else {
-        int i = 0;
-        for(int i = 0; i < head->count(); i++ ){
-            if (i + 4 < head->count()){
-                rte_prefetch0(_local_fcbs_struct + (*fcb[i+4]));
+
+    auto *table = reinterpret_cast<rte_hash *> (_table);
+    rte_hash_lookup_bulk(table, const_cast<const void **>(&(key_array[0])), head->count(), positions);
+
+    int i = 0;
+    FOR_EACH_PACKET_SAFE(head, pkt) {
+        int local_idx = positions[i];
+        if (local_idx < 0){
+            local_idx = rte_hash_add_key(table, key_array[i]);
+            if (_verbose)
+                _insertions++;
+            if (local_idx < 0){
+                click_chatter("Problem with inserting data! %d", local_idx);
+                return;
             }
-            int local_idx = *fcb[i]; 
-            _local_fcbs_struct[local_idx].count++;
         }
+
+        _local_fcbs_struct[local_idx].count++;
+        i++;
     }
 }
 #endif

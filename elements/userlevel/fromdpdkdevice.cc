@@ -369,6 +369,7 @@ FromDPDKDevice::_run_task(int iqueue)
 #endif
 
 for (unsigned i = 0; i < n; ++i) {
+    //rte_pktmbuf_dump(stdout, pkts[i], 1400);
     unsigned char *data = rte_pktmbuf_mtod(pkts[i], unsigned char *);
     rte_prefetch0(data);
 #if CLICK_PACKET_USE_DPDK

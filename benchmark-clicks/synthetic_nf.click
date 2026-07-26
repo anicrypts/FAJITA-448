@@ -1,7 +1,7 @@
-fd :: FromDPDKDevice(0000:ca:00.0, BURST 32, NDESC 4096,  VERBOSE 3, PROMISC 1,  CLEAR 1);
-nf :: SyntheticNF(OPS 100, NREAD 50, TABLE_SIZE 1024);
-fc :: SourceCounter(CAPACITY 4096, VERBOSE 1);
+fd :: FromDPDKDevice(0000:ca:00.0, BURST 32, NDESC 4096, VERBOSE 3, PROMISC 0, CLEAR 1);
+mark_ip :: MarkIPHeader(OFFSET 14)
+fm :: FlowIPManager_DPDK(CAPACITY 65536, TIMEOUT 10);
+nf :: SyntheticNF(OPS 100, STRIDE 32);
 td :: ToDPDKDevice(0000:ca:00.0, BURST 32, IQUEUE 8192);
 
-fd -> nf -> fc -> td;
-
+fd -> mark_ip -> fm -> nf -> td;

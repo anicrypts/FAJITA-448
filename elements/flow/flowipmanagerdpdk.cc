@@ -14,6 +14,8 @@
 #include <rte_ethdev.h>
 #include <rte_errno.h>
 
+#define DEBUG
+
 CLICK_DECLS
 
 FlowIPManager_DPDK::FlowIPManager_DPDK() {
@@ -29,6 +31,7 @@ int FlowIPManager_DPDK::configure(Vector<String> &conf, ErrorHandler *errh) {
 
     if (parse(&args) || args
                 .read_or_set("VERBOSE", _verbose, false)
+                .read_or_set("NCHECK", _ncheck, 10)
                 .complete())
         return errh->error("Error while parsing arguments!");
 
@@ -121,6 +124,30 @@ FlowIPManager_DPDK::remove(IPFlow5ID &f)
 
 void FlowIPManager_DPDK::cleanup(CleanupStage stage)
 {
+}
+
+void FlowIPManager_DPDK::update_table(FlowControlBlock *fcb, const Timestamp &recent)
+{
+#ifdef DEBUG
+    click_chatter("FlowIPManager_DPDK: updating hash table");
+#endif
+
+    FlowControlBlock *cur = fcb;
+    Timestamp timeout_ts = Timestamp(_timeout_ms / 1000);
+
+    for (int i = 0; i < _ncheck; i++) {
+        if ((cur->lastseen - recent) > timeout_ts) {
+            IPFlow5ID key = *get_fcb_key(fcb);
+#ifdef DEBUG
+            click_chatter("FlowIPManager_DPDK: deleting hash table entry key %s", key.unparse());
+#endif
+            int ret = remove(key);
+            if (unlikely(ret < 0)) {
+                click_chatter("Problem deleting hash table entry! key: %s", key.unparse());
+            }
+        }
+        cur = *get_next_released_fcb(cur);
+    }
 }
 
 CLICK_ENDDECLS

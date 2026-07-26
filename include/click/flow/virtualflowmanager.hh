@@ -272,6 +272,8 @@ class VirtualFlowManagerIMP : public VirtualFlowManager, public Router::InitFutu
         }
 #endif
 
+        ((T*) this)->update_table(fcb_stack, recent);
+
         fcb_stack = tmp;
     }
 

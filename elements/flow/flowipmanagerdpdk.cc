@@ -14,7 +14,7 @@
 #include <rte_ethdev.h>
 #include <rte_errno.h>
 
-#define DEBUG
+#define FLOWIPMANAGER_DPDK_DEBUG 1
 
 CLICK_DECLS
 
@@ -126,27 +126,33 @@ void FlowIPManager_DPDK::cleanup(CleanupStage stage)
 {
 }
 
-void FlowIPManager_DPDK::update_table(FlowControlBlock *fcb, const Timestamp &recent)
+void FlowIPManager_DPDK::update_table(const Timestamp &recent)
 {
-#ifdef DEBUG
-    click_chatter("FlowIPManager_DPDK: updating hash table");
-#endif
+    if constexpr (FLOWIPMANAGER_DPDK_DEBUG > 1) {
+        click_chatter("FlowIPManager_DPDK: updating hash table. _next_fcb = %d", _next_fcb);
+    }
 
-    FlowControlBlock *cur = fcb;
     Timestamp timeout_ts = Timestamp(_timeout_ms / 1000);
 
     for (int i = 0; i < _ncheck; i++) {
-        if ((cur->lastseen - recent) > timeout_ts) {
-            IPFlow5ID key = *get_fcb_key(fcb);
-#ifdef DEBUG
-            click_chatter("FlowIPManager_DPDK: deleting hash table entry key %s", key.unparse());
-#endif
-            int ret = remove(key);
-            if (unlikely(ret < 0)) {
-                click_chatter("Problem deleting hash table entry! key: %s", key.unparse());
+        FlowControlBlock *cur = get_fcb_from_flowid(_next_fcb);
+        //guard for in-use flow control block
+        if (cur->fcb_idx == _next_fcb) {
+            if (cur->lastseen > 0 && (recent - cur->lastseen) > timeout_ts) {
+                IPFlow5ID key = *get_fcb_key(cur);
+                click_chatter("key %s", key.unparse().c_str());
+            
+                if constexpr (FLOWIPMANAGER_DPDK_DEBUG > 0) {
+                    click_chatter("FlowIPManager_DPDK: deleting hash table entry key %s", key.unparse().c_str());
+                }
+            
+                int ret = remove(key);
+                if (unlikely(ret < 0)) {
+                    click_chatter("Problem deleting hash table entry! key: %s, err %d", key.unparse().c_str(), ret);
+                }
             }
         }
-        cur = *get_next_released_fcb(cur);
+        _next_fcb = (_next_fcb + 1) % _capacity;
     }
 }
 

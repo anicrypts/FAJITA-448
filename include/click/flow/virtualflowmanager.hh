@@ -272,7 +272,7 @@ class VirtualFlowManagerIMP : public VirtualFlowManager, public Router::InitFutu
         }
 #endif
 
-        ((T*) this)->update_table(fcb_stack, recent);
+        ((T*) this)->update_table(recent);
 
         fcb_stack = tmp;
     }
@@ -382,6 +382,9 @@ inline void process(Packet *p, BatchBuilder &b, Timestamp &recent, uint8_t &fcb_
             memcpy(get_fcb_key(fcb), &fid, sizeof(IPFlow5ID));
             state._timer_wheel.schedule_after(fcb, _timeout_epochs, setter);
         }
+
+        // click_chatter("flowid as constructed in process(): %s", fid.unparse().c_str());
+        // click_chatter("flowid from get_key after inserting in process(): %s", (*get_fcb_key(fcb)).unparse().c_str());
 
     } // (end)It's a new flow
 

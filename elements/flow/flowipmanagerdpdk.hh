@@ -63,9 +63,9 @@ class FlowIPManager_DPDK: public VirtualFlowManagerIMP<FlowIPManager_DPDK, FlowI
     inline int remove(IPFlow5ID &f);
     inline int count();
 
-    unsigned int _ncheck; //Number of FCB entries to iterate to consider for deletion
-    IPFlow5ID _next_fcb = IPFlow5ID(); // Next FCB to iterated over in update_table
-    inline void update_table(FlowControlBlock* fcb, const Timestamp &recent);
+    unsigned int _ncheck; // Number of FCB entries to consider for deletion in one call to update_table
+    unsigned int _next_fcb = 0; // Next FCB to iterate over in update_table
+    inline void update_table(const Timestamp &recent);
 
     friend class VirtualFlowManagerIMP;
 };

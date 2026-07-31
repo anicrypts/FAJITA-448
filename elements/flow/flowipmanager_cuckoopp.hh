@@ -40,7 +40,7 @@ protected:
     inline int count();
 
     // Dummy function to allow update_table() to be called for FlowIPManager_DPDK
-    inline void update_table(FlowControlBlock* fcb, const Timestamp &recent) 
+    inline void update_table(const Timestamp &recent) 
     {}
     
     friend class VirtualFlowManagerIMP;

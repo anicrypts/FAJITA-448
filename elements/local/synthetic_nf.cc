@@ -26,7 +26,7 @@ SyntheticNF::~SyntheticNF()
 int SyntheticNF::configure(Vector<String> &conf, ErrorHandler *errh) {
     if (Args(conf, this, errh)
         .read_or_set("OPS", _ops, 0)
-	    .read_or_set("STRIDE", _stride, 0)
+	.read_or_set("STRIDE", _stride, 0)
         .complete() < 0)
         return -1;
     click_chatter("SyntheticNF: configured ops %d, stride %d\n", _ops, _stride);
@@ -43,11 +43,6 @@ Packet * SyntheticNF::simple_action(Packet *p) {
     if (!q) {
         // drop if cannot make writable
         p->kill();
-        return 0;
-    }
-
-    // Basic sanity check: must be at least Ethernet header size
-    if (q->length() < (int)sizeof(click_ether)) {
         return 0;
     }
 

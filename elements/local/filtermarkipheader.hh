@@ -20,7 +20,7 @@ CLICK_DECLS
  *
  * =a CheckIPHeader, CheckIPHeader2, StripIPHeader */
 
-class FilterMarkIPHeader : public SimpleElement<FilterMarkIPHeader> {
+class FilterMarkIPHeader : public BatchElement {
     public:
         FilterMarkIPHeader () CLICK_COLD;
         ~FilterMarkIPHeader() CLICK_COLD;
@@ -31,10 +31,22 @@ class FilterMarkIPHeader : public SimpleElement<FilterMarkIPHeader> {
 
         Packet *simple_action(Packet *p);
 
+        int mark_packets(Packet *p);
+	    void push_batch(int port, PacketBatch* batch);
+
     private:
         int _ip_offset;
+        int _kill_pkt_count;
+	    int _pkt_count;
         IPAddress _expected_src_ip = IPAddress(String("192.168.0.1"));
         IPAddress _expected_dst_ip = IPAddress(String("192.168.0.2"));
+
+        inline int kill_and_update(Packet *p)
+        {
+            p->kill();
+            _kill_pkt_count += 1;
+            return -1;
+        }
 };
 
 CLICK_ENDDECLS

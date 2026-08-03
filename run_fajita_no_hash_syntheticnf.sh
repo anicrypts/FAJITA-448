@@ -1,0 +1,1 @@
+sudo ./bin/click benchmark-clicks/no_hash_synthetic_nf.click --dpdk -l 0,1,2,3,4,5,6,7 -n 16

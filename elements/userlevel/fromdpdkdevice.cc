@@ -104,6 +104,7 @@ int FromDPDKDevice::configure(Vector<String> &conf, ErrorHandler *errh)
         .read("MTU", mtu).read_status(has_mtu)
         .read("MODE", mode)
         .read("FLOW_ISOLATE", flow_isolate)
+	.read_or_set("STATSFILE", _stats_file, String::make_empty())
     #if HAVE_FLOW_API
         .read("FLOW_RULES_FILE", flow_rules_filename)
     #endif
@@ -323,8 +324,36 @@ int FromDPDKDevice::initialize(ErrorHandler *errh)
 
 void FromDPDKDevice::cleanup(CleanupStage)
 {
+    this->write_stats();
     DPDKDevice::cleanup(ErrorHandler::default_handler());
     cleanup_tasks();
+}
+
+void FromDPDKDevice::write_stats()
+{
+    if (!this->_dev) {
+	click_chatter("Dev not set!");
+	return;
+    }
+    struct rte_eth_stats stats;
+    if (rte_eth_stats_get(this->_dev->port_id, &stats)) {
+        click_chatter("rte_eth_stats not acquired!");
+	return;
+    }
+    if (this->_stats_file.equals(String::make_empty())) {
+	click_chatter("Stats file is not set!");
+	return;
+    }
+    FILE *fptr = fopen(this->_stats_file.c_str(), "w");
+    fprintf(fptr, "ipackets=%lu\n", stats.ipackets);
+    fprintf(fptr, "opackets=%lu\n", stats.opackets);
+    fprintf(fptr, "ibytes=%lu\n", stats.ibytes);
+    fprintf(fptr, "obytes=%lu\n", stats.obytes);
+    fprintf(fptr, "imissed=%lu\n", stats.imissed);
+    fprintf(fptr, "ierrors=%lu\n", stats.ierrors);
+    fprintf(fptr, "oerrors=%lu\n", stats.oerrors);
+    fprintf(fptr, "rx_nombuf=%lu\n", stats.rx_nombuf);
+    fclose(fptr);
 }
 
 void FromDPDKDevice::clear_buffers() {

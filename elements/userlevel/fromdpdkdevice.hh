@@ -418,6 +418,7 @@ public:
     void add_handlers() override CLICK_COLD;
     void cleanup(CleanupStage) override CLICK_COLD;
     bool run_task(Task *) override;
+    void write_stats();
 #if HAVE_DPDK_INTERRUPT
     void selected(int fd, int mask) override;
 #endif
@@ -458,6 +459,7 @@ protected:
                               const Handler *handler, ErrorHandler *errh);
 
     DPDKDevice* _dev;
+    String _stats_file;
 #if HAVE_DPDK_INTERRUPT
     int _rx_intr;
     class FDState { public:

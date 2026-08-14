@@ -5,6 +5,7 @@
 #include <click/notifier.hh>
 #include <click/task.hh>
 #include <click/dpdkdevice.hh>
+#include <click/timer.hh>
 #include "queuedevice.hh"
 #include "../../vendor/nicscheduler/ethernetdevice.hh"
 
@@ -418,6 +419,7 @@ public:
     void add_handlers() override CLICK_COLD;
     void cleanup(CleanupStage) override CLICK_COLD;
     bool run_task(Task *) override;
+    void write_stats();
 #if HAVE_DPDK_INTERRUPT
     void selected(int fd, int mask) override;
 #endif
@@ -436,6 +438,8 @@ public:
     inline EthernetDevice *get_eth_device() {
         return _dev->get_eth_device();
     }
+
+    void run_timer(Timer *) override;
 
 protected:
     static bool multi_run_task(Task *t, void* e);
@@ -458,6 +462,9 @@ protected:
                               const Handler *handler, ErrorHandler *errh);
 
     DPDKDevice* _dev;
+    String _stats_file;
+    Timer _timer;
+    uint64_t _stats_timeout;
 #if HAVE_DPDK_INTERRUPT
     int _rx_intr;
     class FDState { public:

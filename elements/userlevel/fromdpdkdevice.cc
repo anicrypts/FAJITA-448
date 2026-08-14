@@ -50,7 +50,7 @@ CLICK_DECLS
 #define LOAD_UNIT 10
 
 FromDPDKDevice::FromDPDKDevice() :
-    _dev(0), _tco(false), _uco(false), _ipco(false)
+    _dev(0), _tco(false), _uco(false), _ipco(false), _timer(this)
 #if HAVE_DPDK_INTERRUPT
     ,_rx_intr(-1)
 #endif
@@ -105,6 +105,7 @@ int FromDPDKDevice::configure(Vector<String> &conf, ErrorHandler *errh)
         .read("MODE", mode)
         .read("FLOW_ISOLATE", flow_isolate)
 	.read_or_set("STATSFILE", _stats_file, String::make_empty())
+	.read_or_set("STATS_TIMEOUT", _stats_timeout, 0)
     #if HAVE_FLOW_API
         .read("FLOW_RULES_FILE", flow_rules_filename)
     #endif
@@ -214,7 +215,7 @@ int FromDPDKDevice::configure(Vector<String> &conf, ErrorHandler *errh)
 #else
     r = _dev->set_mode(mode, num_pools, vf_vlan, errh);
 #endif
-
+    click_chatter("FromDPDKDevice: configured timeout %lu\n", _stats_timeout);
     return r;
 }
 
@@ -319,18 +320,27 @@ int FromDPDKDevice::initialize(ErrorHandler *errh)
     }
 #endif
 
+    this->_timer.initialize(this, true);
+    this->_timer.schedule_after_sec(_stats_timeout);
     return ret;
 }
 
 void FromDPDKDevice::cleanup(CleanupStage)
 {
-    this->write_stats();
     DPDKDevice::cleanup(ErrorHandler::default_handler());
     cleanup_tasks();
 }
 
+void FromDPDKDevice::run_timer(Timer *)
+{
+    if (this->_stats_timeout > 0) {
+        this->write_stats();
+    }
+}
+
 void FromDPDKDevice::write_stats()
 {
+    click_chatter("FromDPDKDevice: writing stats!");
     if (!this->_dev) {
 	click_chatter("Dev not set!");
 	return;
